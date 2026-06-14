@@ -14,68 +14,26 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-  InputOTPSeparator,
-} from '@/components/ui/input-otp';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Target, Mail, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
-
-type Step = 'email' | 'otp';
+import { Target, Mail, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const otpRes = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      const otpData = await otpRes.json();
-
-      if (otpRes.ok && otpData.success) {
-        setStep('otp');
-        setMessage(otpData.message || 'A verification code has been sent to your email.');
-      } else {
-        setError(otpData.message || 'Failed to send verification code');
-      }
-    } catch (_e) {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length < 6) {
-      setError('Please enter the full 6-digit code');
-      return;
-    }
-    setError('');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await fetch('/api/auth/login-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, code: otp }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await res.json();
@@ -88,34 +46,10 @@ export default function LoginPage() {
           router.push('/affiliate');
         }
       } else {
-        setError(data.error || 'Invalid verification code');
+        setError(data.message || 'Login failed');
       }
     } catch (_e) {
-      setError('Verification failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setError('');
-    setMessage('');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (res.ok) {
-        setMessage('A new verification code has been sent.');
-      } else {
-        setError('Failed to resend code. Please try again.');
-      }
-    } catch (_e) {
-      setError('Failed to resend code.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -124,7 +58,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background p-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Logo & Branding */}
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/25">
             <Target className="h-7 w-7 text-primary-foreground" />
@@ -135,142 +68,51 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Card */}
         <Card className="border-0 shadow-xl shadow-black/5">
-          {step === 'email' ? (
-            <>
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl">Welcome back</CardTitle>
-                <CardDescription>
-                  Enter your email to sign in to your account
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleSendOTP}>
-                <CardContent className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        required
-                        autoFocus
-                        autoComplete="email"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col gap-4">
-                  <Button type="submit" className="w-full" size="lg" disabled={loading || !email}>
-                    {loading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Mail className="mr-2 h-4 w-4" />
-                    )}
-                    {loading ? 'Sending code...' : 'Continue with Email'}
-                  </Button>
-                </CardFooter>
-              </form>
-            </>
-          ) : (
-            <>
-              <CardHeader className="text-center pb-4">
-                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <ShieldCheck className="h-6 w-6 text-primary" />
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-xl">Welcome back</CardTitle>
+            <CardDescription>
+              Enter your email to sign in to your account
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoFocus
+                    autoComplete="email"
+                  />
                 </div>
-                <CardTitle className="text-xl">Check your email</CardTitle>
-                <CardDescription>
-                  We sent a 6-digit code to <span className="font-medium text-foreground">{email}</span>
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleVerifyOTP}>
-                <CardContent className="space-y-4">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  {message && (
-                    <Alert>
-                      <AlertDescription>{message}</AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="flex justify-center">
-                    <InputOTP
-                      maxLength={6}
-                      value={otp}
-                      onChange={(value) => setOtp(value)}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} />
-                        <InputOTPSlot index={1} />
-                        <InputOTPSlot index={2} />
-                      </InputOTPGroup>
-                      <InputOTPSeparator />
-                      <InputOTPGroup>
-                        <InputOTPSlot index={3} />
-                        <InputOTPSlot index={4} />
-                        <InputOTPSlot index={5} />
-                      </InputOTPGroup>
-                    </InputOTP>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col gap-3">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                    disabled={loading || otp.length < 6}
-                  >
-                    {loading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                    )}
-                    {loading ? 'Verifying...' : 'Verify & Sign in'}
-                  </Button>
-                  <div className="flex items-center justify-between w-full">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setStep('email');
-                        setOtp('');
-                        setError('');
-                        setMessage('');
-                      }}
-                    >
-                      <ArrowLeft className="mr-1 h-3 w-3" />
-                      Change email
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResendOTP}
-                      disabled={loading}
-                    >
-                      Resend code
-                    </Button>
-                  </div>
-                </CardFooter>
-              </form>
-            </>
-          )}
+              </div>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+              <Button type="submit" className="w-full" size="lg" disabled={loading || !email}>
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </CardFooter>
+          </form>
         </Card>
 
-        {/* Footer */}
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
           <Link href="/register" className="font-medium text-primary hover:underline">
