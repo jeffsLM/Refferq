@@ -58,12 +58,14 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
 
-        // 5. Inject user info into headers for API usage (optional but helpful)
-        const response = NextResponse.next();
-        response.headers.set('x-user-id', payload.userId as string);
-        response.headers.set('x-user-role', userRole);
+        // 5. Inject user info into request headers so route handlers can read them
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set('x-user-id', payload.userId as string);
+        requestHeaders.set('x-user-role', userRole);
 
-        return response;
+        return NextResponse.next({
+            request: { headers: requestHeaders },
+        });
     } catch (error) {
         if (pathname.startsWith('/api/')) {
             return NextResponse.json(
